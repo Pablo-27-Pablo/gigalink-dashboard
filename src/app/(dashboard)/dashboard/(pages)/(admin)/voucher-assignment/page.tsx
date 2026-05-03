@@ -29,12 +29,13 @@ interface Plan {
   availableToAssign: number;
   assignedToSeller: number;
   activatedCount: number;
+  availableCount: number;
 }
 
 interface Seller {
-  sellerId: number;
-  fullName: string;
-  storeName: string;
+  distributorId: number;
+  distributorName: string;
+  regionName: string;
 }
 
 const mockRequests: RequestHistory[] = [
@@ -70,35 +71,20 @@ export default function VoucherRequest() {
     const sessionToken = Cookies.get("session2");
     const sessionDistributorID = Cookies.get("distributorId");
 
-    // Fetch Inventory Summary
-    axiosInstance
-      .get(`api/distributor/${sessionDistributorID}/inventory-summary`, {
-        headers: {
-          ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
-        },
-      })
-      .then((res) => {
-        const dataToSet = res.data && res.data.plans ? res.data.plans : [];
-        console.log("✅ Inventory Summary Received:", dataToSet);
-        if (Array.isArray(dataToSet)) {
-          setPlans(dataToSet);
-        }
-      })
-      .catch((err) => {
-        console.error("❌ Fetch Error:", err);
-      });
+    // Fetch Inventory Summary plans
 
     // Fetch Sellers
     const fetchSellers = async () => {
       if (!sessionToken) return;
       try {
         const response = await axiosInstance.get(
-          `api/distributor/${sessionDistributorID}/sellers`,
+          `api/superadmin/distributors/`,
           {
             headers: { Authorization: `Bearer ${sessionToken}` },
           },
         );
-        setSellers(response.data.sellers || []);
+        console.log("✅ Sellers Received:", response.data.distributors);
+        setSellers(response.data.distributors || []);
       } catch (error) {
         console.error("Error fetching sellers:", error);
       }
@@ -149,37 +135,36 @@ export default function VoucherRequest() {
 
   const fetchInventory = useCallback(() => {
     const sessionToken = Cookies.get("session2");
-    const sessionDistributorID = Cookies.get("distributorId");
 
     axiosInstance
-      .get(`api/distributor/${sessionDistributorID}/inventory-summary`, {
+      .get(`api/superadmin/dashboard/inventory`, {
         headers: {
           ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
         },
       })
       .then((res) => {
-        const dataToSet = res.data && res.data.plans ? res.data.plans : [];
+        const dataToSet =
+          res.data && res.data.inventoryByPlan ? res.data.inventoryByPlan : [];
+        console.log("✅ Inventory Summary Received:", res.data);
+        setTotalAvailable(res.data.totals.totalRemainingVouchers);
+        console.log(
+          "Total Available to Assign:",
+          res.data.totals.totalRemainingVouchers,
+        );
         if (Array.isArray(dataToSet)) {
           setPlans(dataToSet);
         }
-
-        const totalAvailable = (dataToSet as Plan[]).reduce(
-          (acc, current) => acc + current.availableToAssign,
-          0,
-        );
-
-        setTotalAvailable(totalAvailable);
-
-        console.log("Total Available to Assign:", totalAvailable);
       })
-      .catch((err) => console.error("❌ Fetch Error:", err));
+      .catch((err) => {
+        console.error("❌ Fetch Error:", err);
+      });
   }, []);
 
   const handleSubmitRequest = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const sessionToken = Cookies.get("session2");
-    const sessionDistributorID = Cookies.get("distributorId");
+    // const sessionDistributorID = Cookies.get("distributorId"); // Unused in this snippet
 
     const payload = {
       assignments: [
@@ -192,7 +177,7 @@ export default function VoucherRequest() {
 
     try {
       const response = await axiosInstance.post(
-        `api/distributor/${sessionDistributorID}/sellers/${selectedSellerId}/assign-vouchers`,
+        `api/superadmin/distributors/${selectedSellerId}/assign-vouchers`,
         payload,
         {
           headers: {
@@ -204,18 +189,25 @@ export default function VoucherRequest() {
 
       console.log("Success:", response.data);
 
-      // --- Success Toast ---
+      // --- 1. Show Success Toast ---
       toast.success("Vouchers assigned successfully!");
+
+      // --- 2. Clear / Reset Form Data ---
+      setSelectedPlanId(""); // Clears the plan selection
+      setQuantity(""); // Clears the quantity input
+      // If you have other fields, reset them here (e.g., setSelectedSellerId(""))
+      setSelectedSellerId("");
+
+      // --- 3. UI Updates ---
       setShowForm(false);
       fetchInventory();
     } catch (error: any) {
       console.error("Error assigning vouchers:", error);
 
-      // --- Specific 409 Error Handling ---
+      // --- Error Handling with Toasts ---
       if (error.response?.status === 409) {
         toast.error("Your voucher balance is not enough.");
       } else {
-        // General error message for other issues
         const errorMessage =
           error.response?.data?.message || "Failed to assign vouchers.";
         toast.error(errorMessage);
@@ -277,11 +269,11 @@ export default function VoucherRequest() {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-teal-500"></div>
                   <span className="text-sm text-slate-600 dark:text-slate-300">
-                    {item.planName || item.profileName}
+                    {item.profileName}
                   </span>
                 </div>
                 <span className="font-semibold text-slate-900 dark:text-white">
-                  {item.availableToAssign?.toLocaleString()}
+                  {item.availableCount?.toLocaleString()}
                 </span>
               </div>
             ))}
@@ -325,7 +317,7 @@ export default function VoucherRequest() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Select Seller *
+                Select Distributor *
               </label>
               <select
                 value={selectedSellerId}
@@ -333,10 +325,13 @@ export default function VoucherRequest() {
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
                 required
               >
-                <option value="">Select a seller </option>
+                <option value="">Select a distributor </option>
                 {sellers.map((seller) => (
-                  <option key={seller.sellerId} value={seller.sellerId}>
-                    {seller.fullName} — {seller.storeName}
+                  <option
+                    key={seller.distributorId}
+                    value={seller.distributorId}
+                  >
+                    {seller.distributorName} — {seller.regionName}
                   </option>
                 ))}
               </select>

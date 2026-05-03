@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import session from "js-cookie"; // We alias the import to 'session' here
 // ✅ added
 import {
   Plus,
@@ -26,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { EditVendorDialog } from "@/components/Distributor/EditVendorDialog";
 import { toast } from "sonner";
 import axiosInstance from "@/components/axios/axios";
+import AddVendorModal from "@/components/dashboard/modal/AddVendorModal";
+import Cookies from "js-cookie";
 
 interface Seller {
   sellerId: number;
@@ -39,6 +42,18 @@ interface Seller {
   lastLoginAt: string | null;
   status: "Active" | "Inactive"; // added for UI compatibility
   joinedDate: string; // added for UI compatibility
+  planBreakdown?: PlanBreakdown[];
+}
+export interface PlanBreakdown {
+  profileName: string;
+  qtySold: number;
+  qtyActivated: number;
+  qtyRemaining: number;
+  quantitySold: number;
+  quantityActivated: number;
+  quantityRemaining: number;
+  totalGb: number;
+  totalDataGb: number;
 }
 
 interface Vendor {
@@ -52,6 +67,7 @@ interface Vendor {
   activatedVouchers: number;
   status: "Active" | "Inactive";
   joinedDate: string;
+  planBreakdown?: PlanBreakdown[];
 }
 
 export interface Plan {
@@ -69,47 +85,6 @@ export interface PlanSale {
   qtyActivated: number;
   totalGb: number;
 }
-// const initialSellers: Seller[] = [
-//   {
-//     sellerId: 1,
-//     fullName: "Ju Dela Cruz",
-//     storeName: "A&J",
-//     email: "juan@vendor1.com",
-//     phone: "+63 917 123 4567",
-//     location: "Bongao, Tawi Tawi",
-//     assignedVouchers: 1500,
-//     activatedVouchers: 1350,
-//     lastLoginAt: null,
-//     status: "Active",
-//     joinedDate: "2025-01-15",
-//   },
-//   {
-//     sellerId: 2,
-//     fullName: "Mar Santos",
-//     storeName: "Kyukyu",
-//     email: "maria@vendor2.com",
-//     phone: "+63 918 234 5678",
-//     location: "Languyan, Tawi Tawi",
-//     assignedVouchers: 1200,
-//     activatedVouchers: 1050,
-//     lastLoginAt: null,
-//     status: "Active",
-//     joinedDate: "2025-02-10",
-//   },
-//   {
-//     sellerId: 3,
-//     fullName: "Pedro Reyes",
-//     storeName: "Pedro's",
-//     email: "pedro@vendor3.com",
-//     phone: "+63 919 345 6789",
-//     location: "Sibutu, Tawi Tawi",
-//     assignedVouchers: 800,
-//     activatedVouchers: 600,
-//     lastLoginAt: null,
-//     status: "Inactive",
-//     joinedDate: "2024-12-20",
-//   },
-// ];
 
 const mockPlans: Plan[] = [
   {
@@ -247,13 +222,107 @@ export default function VendorManagement() {
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [sellersInformation, setSellersInformation] = useState(false);
+
+  // const handleUpdateVendor = async (updatedData) => {
+  //   const sessionToken = Cookies.get("session2");
+
+  //   // The payload should match the JSON structure in your Postman screenshot
+  //   const payload = {
+  //     fullName: updatedData.name, // Mapping 'name' from your state to 'fullName' for API
+  //     storeName: updatedData.storeName,
+  //     email: updatedData.email,
+  //     phone: updatedData.phone,
+  //     location: updatedData.location,
+  //   };
+
+  //   try {
+  //     const response = await axiosInstance.patch(
+  //       `api/distributor/2/sellers/8`,
+  //       payload,
+  //       {
+  //         headers: {
+  //           ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
+  //         },
+  //       },
+  //     );
+
+  //     console.log("✅ Update Successful:", response.data);
+  //     setShowEditDialog(false); // Close the dialog on success
+
+  //     // Optional: Refresh your local list or state here
+  //   } catch (err) {
+  //     //console.error("❌ Update Error:", err.response?.data || err.message);
+  //     alert("Failed to update vendor settings.");
+  //   }
+  //   setShowEditDialog(false);
+  // };
+
+  const handleAddClick = (seller: Seller) => {
+    const sessionToken = Cookies.get("session2");
+    const sessionDistributorID = Cookies.get("distributorId");
+
+    axiosInstance
+      .get(
+        `api/distributor/${sessionDistributorID}/sellers/${seller.sellerId}`,
+        {
+          headers: {
+            ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
+          },
+        },
+      )
+      .then((res) => {
+        const data = res.data.seller;
+
+        console.log("✅ API Detail Response:", data);
+
+        if (!data) {
+          console.error("❌ No seller data");
+          return;
+        }
+
+        // ✅ SET FROM API (NOT seller)
+        setSelectedVendor({
+          id: String(data.sellerId),
+          name: data.fullName,
+          storeName: data.storeName,
+          email: data.email,
+          phone: data.phone,
+          location: data.location,
+          assignedVouchers: data.assignedVouchers,
+          activatedVouchers: data.activatedVouchers,
+          status: data.status,
+          joinedDate: data.joinedDate,
+          planBreakdown: data.planBreakdown || [], // 🔥 IMPORTANT
+        });
+
+        setSelectedSeller(seller);
+      })
+      .catch((err) => {
+        console.error("❌ Fetch Error:", err);
+      });
+  };
 
   useEffect(() => {
-    // 2. The URL is now relative, and headers are handled automatically
+    // 1. Get the session (which is stored in the 'session' cookie)
+    const sessionToken = Cookies.get("session2");
+    const sessionDistributorID = Cookies.get("distributorId");
+    console.log("🔍 Session Token from Cookie:", sessionToken); // Debug log to verify token retrieval
+
+    // 2. Perform the request with the Bearer header
+
     axiosInstance
-      .get("http://121.58.249.168:3033/api/distributor/2/sellers")
+      .get(`api/distributor/${sessionDistributorID}/sellers`, {
+        headers: {
+          // Only attach the header if the session exists
+          ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
+        },
+      })
       .then((res) => {
+        // 3. Handle the response data
         const dataToSet = Array.isArray(res.data) ? res.data : res.data.sellers;
+        console.log("✅ API Response Data:", sessionToken); // Debug log to verify response structure
+
         if (Array.isArray(dataToSet)) {
           setSellers(dataToSet);
         } else {
@@ -285,16 +354,46 @@ export default function VendorManagement() {
   });
 
   const handleToggleStatus = (seller: Seller) => {
-    setSellers((prev) =>
-      prev.map((s) =>
-        s.sellerId === seller.sellerId
-          ? {
-              ...s,
-              status: s.status === "Active" ? "Inactive" : "Active",
-            }
-          : s,
-      ),
-    );
+    const sessionToken = Cookies.get("session2");
+    const sessionDistributorID = Cookies.get("distributorId");
+
+    // 1. Determine the new value (if currently "Active", we send false)
+    const newStatusValue = seller.status !== "Active";
+
+    axiosInstance
+      .patch(
+        `api/distributor/${sessionDistributorID}/sellers/${seller.sellerId}/status`,
+        {
+          // This matches your screenshot exactly
+          isActive: newStatusValue,
+        },
+        {
+          headers: {
+            ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
+          },
+        },
+      )
+      .then((res) => {
+        console.log("✅ Status Updated:", res.data);
+
+        // 2. Update the UI state only after the API succeeds
+        setSellers((prev) =>
+          prev.map((s) =>
+            s.sellerId === seller.sellerId
+              ? {
+                  ...s,
+                  status: newStatusValue ? "Active" : "Inactive",
+                }
+              : s,
+          ),
+        );
+      })
+      .catch((err) => {
+        console.error("❌ Failed to update status:", err);
+        // Optional: Add a toast notification here to tell the user it failed
+      });
+
+    setSelectedVendor(null);
     setSelectedSeller(null);
   };
 
@@ -327,6 +426,7 @@ export default function VendorManagement() {
       lastLoginAt: null,
       status: "Active",
       joinedDate: new Date().toISOString().split("T")[0],
+      //planBreakdown: seller.planBreakdown, // Pass the plan breakdown data
     };
 
     setSellers((prev) => [...prev, newSeller]);
@@ -410,7 +510,7 @@ export default function VendorManagement() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
             {
               label: "Total Vendors",
@@ -426,13 +526,6 @@ export default function VendorManagement() {
               label: "Inactive",
               value: vendors.filter((v) => v.status === "Inactive").length,
               color: "text-red-600 dark:text-red-400",
-            },
-            {
-              label: "Total Assigned",
-              value: vendors
-                .reduce((s, v) => s + v.assignedVouchers, 0)
-                .toLocaleString(),
-              color: "text-slate-900 dark:text-white",
             },
           ].map((card, i) => (
             <motion.div
@@ -518,7 +611,7 @@ export default function VendorManagement() {
                 {filtered.map((s) => (
                   <tr
                     key={s.sellerId}
-                    // onClick={() => setSelectedVendor(s)}
+                    onClick={() => handleAddClick(s)}
                     className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -664,7 +757,8 @@ export default function VendorManagement() {
                                 Store Name
                               </p>
                               <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
-                                {selectedVendor.name.split(" ")[0]}&apos;s Store
+                                {selectedVendor?.name?.split(" ")[0] ?? "N/A"}'s
+                                Store
                               </p>
                             </div>
                           </div>
@@ -790,33 +884,35 @@ export default function VendorManagement() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {mockPlanSales.map((sale, index) => (
-                              <tr
-                                key={index}
-                                className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                              >
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                                  {sale.planName}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-100 text-teal-700 font-semibold">
-                                    <Package size={14} />
-                                    {sale.dataVoucher}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
-                                  {sale.qtySold.toLocaleString()}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
-                                  {sale.qtyActivated.toLocaleString()}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                  <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-teal-600 text-white font-bold text-sm">
-                                    {sale.totalGb.toLocaleString()} GB
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                            {selectedVendor?.planBreakdown?.map(
+                              (sale, index) => (
+                                <tr
+                                  key={index}
+                                  className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                                >
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
+                                    {sale.profileName}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-100 text-teal-700 font-semibold">
+                                      <Package size={14} />
+                                      {sale.qtyActivated}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
+                                    {sale.qtySold}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
+                                    {sale.qtyActivated}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-teal-600 text-white font-bold text-sm">
+                                      {sale.totalGb} GB
+                                    </div>
+                                  </td>
+                                </tr>
+                              ),
+                            )}
                             {/* Total Row */}
                             <tr className="bg-slate-50 dark:bg-slate-700/50 font-semibold">
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
@@ -826,17 +922,20 @@ export default function VendorManagement() {
                                 -
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
-                                {mockPlanSales
-                                  .reduce((sum, sale) => sum + sale.qtySold, 0)
-                                  .toLocaleString()}
+                                {(
+                                  selectedVendor?.planBreakdown?.reduce(
+                                    (sum, sale) => sum + sale.qtySold,
+                                    0,
+                                  ) ?? 0
+                                ).toLocaleString()}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
-                                {mockPlanSales
-                                  .reduce(
+                                {(
+                                  selectedVendor?.planBreakdown?.reduce(
                                     (sum, sale) => sum + sale.qtyActivated,
                                     0,
-                                  )
-                                  .toLocaleString()}
+                                  ) ?? 0
+                                ).toLocaleString()}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
                                 <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-teal-600 text-white font-bold text-sm">
@@ -865,14 +964,16 @@ export default function VendorManagement() {
                       >
                         <Edit size={20} /> Edit Vendor
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => setSelectedVendor(null)}
                         className="flex-1 px-5 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-500/30"
                       >
                         <RotateCcw size={20} /> Reset Password
-                      </button>
+                      </button> */}
                       <button
-                        onClick={() => handleToggleStatus(selectedSeller!)}
+                        onClick={() =>
+                          selectedSeller && handleToggleStatus(selectedSeller)
+                        }
                         className={cn(
                           "flex-1 px-5 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-lg",
                           selectedVendor.status === "Active"
@@ -894,12 +995,12 @@ export default function VendorManagement() {
         </AnimatePresence>
 
         {/* Add Vendor Modal */}
-        {/* <AddVendorModal
+        <AddVendorModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           plans={mockPlans}
           onSubmit={handleAddVendor}
-        /> */}
+        />
 
         {/* Edit Vendor Dialog */}
         <EditVendorDialog
@@ -907,7 +1008,6 @@ export default function VendorManagement() {
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
           vendor={selectedVendor}
-          onSave={handleEditVendor}
         />
       </div>
     </>

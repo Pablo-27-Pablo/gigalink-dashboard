@@ -19,7 +19,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AddVendorModal } from "@/components/dashboard/modal/AddVendorModal";
+//import { AddVendorModal } from "@/components/dashboard/modal/AddVendorModal";
 import { EditVendorDialog } from "@/components/Distributor/EditVendorDialog";
 import { toast } from "sonner";
 
@@ -208,12 +208,12 @@ export default function VendorManagement() {
         </AnimatePresence>
 
         {/* MODALS */}
-        <AddVendorModal
+        {/* <AddVendorModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           plans={[]}
           onSubmit={handleAddSeller}
-        />
+        /> */}
 
         {/* <EditVendorDialog
           open={showEditDialog}

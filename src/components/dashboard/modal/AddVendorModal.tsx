@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import axiosInstance from "@/components/axios/axios";
+import Cookies from "js-cookie";
 
 interface Plan {
   id: string;
@@ -45,7 +47,7 @@ export interface VendorFormData {
   location: string;
 }
 
-export function AddVendorModal({
+export default function AddVendorModal({
   isOpen,
   onClose,
   plans,
@@ -129,6 +131,60 @@ export function AddVendorModal({
     });
     setPlanAssignments({});
     onClose();
+  };
+
+  const handleSubmitVendor = async () => {
+    try {
+      // Basic validation
+      if (
+        !vendorData.name ||
+        !vendorData.storeName ||
+        !vendorData.email ||
+        !vendorData.phone ||
+        !vendorData.location
+      ) {
+        toast.error("Please fill all fields");
+        return;
+      }
+
+      const payload = {
+        fullName: vendorData.name,
+        storeName: vendorData.storeName,
+        email: vendorData.email,
+        phone: vendorData.phone,
+        location: vendorData.location,
+        password: "TempPass123!", // you can randomize later
+      };
+
+      try {
+        // Use your instance name here (e.g., apiClient)
+        // The base URL is handled by the instance configuration
+        const sessionToken = Cookies.get("session2");
+        const response = await axiosInstance.post(
+          "api/distributor/2/sellers",
+          payload, // Second argument: The data
+          {
+            // Third argument: The config object
+            headers: {
+              // Only attach the header if the session exists
+              ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
+            },
+          },
+        );
+        console.log("Success:", response.data);
+      } catch (error) {
+        console.error("Error posting vendor data:", error);
+      }
+
+      toast.success("Vendor added successfully!");
+
+      // Reset + close
+      //setShowConfirmSubmit(false);
+      handleCloseModal();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.response?.data?.message || "Failed to add vendor");
+    }
   };
 
   const handleCloseModal = () => {
@@ -448,29 +504,21 @@ export function AddVendorModal({
                 {/* Modal Footer */}
                 <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
                   <div className="flex gap-3">
-                    {step === 2 && (
-                      <button
-                        onClick={handleBack}
-                        className="px-6 py-3 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                      >
-                        <ChevronLeft size={20} /> Back
-                      </button>
-                    )}
-                    {step === 1 ? (
-                      <button
-                        onClick={handleNext}
-                        className="flex-1 px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors shadow-lg shadow-teal-500/30"
-                      >
-                        Next: Assign Plans <ChevronRight size={20} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleAssignPlans}
-                        className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all shadow-lg shadow-teal-500/30"
-                      >
-                        <CheckCircle2 size={20} /> Review & Confirm
-                      </button>
-                    )}
+                    {/* Cancel Button */}
+                    <button
+                      onClick={handleCloseModal}
+                      className="flex-1 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+
+                    {/* Add Vendor Button */}
+                    <button
+                      onClick={handleSubmitVendor}
+                      className="flex-1 py-3 rounded-lg bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium shadow-lg shadow-teal-500/30 hover:from-teal-600 hover:to-cyan-700 transition-all"
+                    >
+                      Add Vendor
+                    </button>
                   </div>
                 </div>
               </motion.div>

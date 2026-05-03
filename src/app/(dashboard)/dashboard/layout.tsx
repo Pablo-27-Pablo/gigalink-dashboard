@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+//import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -14,15 +14,17 @@ import {
   LogOut,
   UserCircle,
   Users, // Added for Vendor Management icon
+  ShelvingUnit, // Placeholder for Inventory icon, replace with actual icon
 } from "lucide-react";
 import DashboardNavbar from "@/components/dashboard/navbar/DashboardNavbar";
+import Cookies from "js-cookie";
 
 const navItems = [
   {
     label: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard/",
-    roles: ["vendor"], // Vendor only
+    roles: ["seller"], // Vendor only
   },
   {
     label: "Vendor Management",
@@ -34,25 +36,43 @@ const navItems = [
     label: "Services",
     icon: Wifi,
     href: "/dashboard/services",
-    roles: ["vendor"], // Vendor only
+    roles: ["seller"], // Vendor only
   },
   {
     label: "History",
     icon: History,
     href: "/dashboard/history",
-    roles: ["vendor"], // Vendor only
+    roles: ["seller"], // Vendor only
   },
   {
-    label: "Request Voucher",
-    icon: UserCircle,
+    label: "Inventory",
+    icon: ShelvingUnit, // Replace with actual icon
     href: "/dashboard/request",
     roles: ["distributor"], // Distributor only
+  },
+  {
+    label: "Distributor Management",
+    icon: UserCircle,
+    href: "/dashboard/admin",
+    roles: ["superadmin"], // Both can see
+  },
+  {
+    label: "Voucher Assigment",
+    icon: UserCircle,
+    href: "/dashboard/voucher-assignment",
+    roles: ["superadmin"], // Both can see
+  },
+  {
+    label: "Transfer Logs",
+    icon: UserCircle,
+    href: "/dashboard/transfer-logs",
+    roles: ["superadmin"], // Both can see
   },
   {
     label: "Profile",
     icon: UserCircle,
     href: "/dashboard/profile",
-    roles: ["vendor", "distributor"], // Both can see
+    roles: ["seller", "distributor", "superadmin"], // Both can see
   },
 ];
 
@@ -60,7 +80,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
   const router = useRouter();
-  const [role, setRole] = useState("distributor"); // for RBAC
+  const [role, setRole] = useState(""); // for RBAC
 
   // Filter items based on the current role state
   const filteredNavItems = navItems.filter((item) => item.roles.includes(role));
@@ -71,8 +91,58 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const handleSignOut = () => {
+    // 1. Check if the cookie exists to avoid unnecessary operations
+    if (document.cookie.includes("session2")) {
+      // 2. Clear the cookie by setting an expired date
+      document.cookie =
+        "session2=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+    }
+
+    if (document.cookie.includes("distributorId")) {
+      // 2. Clear the cookie by setting an expired date
+      document.cookie =
+        "distributorId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+    }
+    if (document.cookie.includes("vendorId")) {
+      // 2. Clear the cookie by setting an expired date
+      document.cookie =
+        "vendorId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+    }
+
+    // 3. Force a refresh to clear Next.js client-side data
+    router.refresh();
+
+    // 4. Send the user back to login
     router.push("/login");
   };
+
+  useEffect(() => {
+    const sessionToken = Cookies.get("session2");
+    if (sessionToken) {
+      try {
+        // 1. Split the token (Header.Payload.Signature)
+        const base64Url = sessionToken.split(".")[1];
+        // 2. Replace URL-safe characters and decode
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          window
+            .atob(base64)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join(""),
+        );
+
+        const payload = JSON.parse(jsonPayload);
+
+        setRole(payload.portal); // Assuming 'portal' field contains the role
+
+        // Example: access a specific field like distributorId
+        // console.log(payload.id);
+      } catch (error) {
+        console.error("❌ Failed to decode token:", error);
+      }
+    }
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 transition-colors">
@@ -126,12 +196,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto relative">
+      {/* <main className="flex-1 overflow-y-auto relative">
         <DashboardNavbar
           onToggleSidebar={() => setCollapsed((c) => !c)}
           role={role}
         />
-        <div className="">{children}</div>
+        <div className="flex-1 overflow-y-auto p-4">{children}</div>
+      </main> */}
+      <main className="flex flex-col h-screen w-full overflow-y-auto">
+        {/* The Navbar stays at the top naturally in the flex column */}
+        <DashboardNavbar
+          onToggleSidebar={() => setCollapsed((c) => !c)}
+          role={role}
+        />
+
+        {/* This div grows to fill space and handles the scrolling */}
+        <div className="flex-1 overflow-y-auto p-4">{children}</div>
       </main>
     </div>
   );

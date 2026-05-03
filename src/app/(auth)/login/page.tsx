@@ -14,6 +14,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import axiosInstance from "../../../components/axios/axios"; // Import the configured axios instance
+
 import axios from "axios";
 // import { setAuthCookie } from "@/app/actions/auth";
 import Cookies from "js-cookie";
@@ -64,34 +66,62 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://121.58.249.168:3033/api/auth/login",
-        { email, password },
-        { withCredentials: true }, // CRITICAL: Allows Axios to receive/send cookies
-      );
-
-      const data = response.data;
-      const { token } = response.data;
-
-      Cookies.set("session2", token, {
-        expires: 1, // 1 day
-        path: "/",
-        sameSite: "lax",
+      const response = await axiosInstance.post("api/auth/login", {
+        email,
+        password,
       });
 
-      // If the backend DOES NOT send Set-Cookie, use your Server Action:
-      // const cookieResult = await setAuthCookie(data.token, data.portal);
+      // 1. You extracted 'token' here
+      const { token, portal, user } = response.data;
+      const currentUserRole = response.data.portal; // Assuming the API returns the user's role as 'portal'
+      const distributorId = user?.distributorId;
+      const sellerId = user?.sellerId;
+      const superadminId = user?.userId;
 
-      // if (cookieResult.success) {
-      //   const finalPortal = data.portal as keyof typeof portalConfig;
-      //   const redirectPath =
-      //     portalConfig[finalPortal]?.redirect || "/dashboard";
+      console.log("✅ Login Response:", response.data.portal);
 
-      //   router.push(redirectPath);
-      //   router.refresh();
-      // }
+      // Log the entire response for debugging
+
+      if (token) {
+        // 2. Set the cookie using the 'token' variable (NOT 'data.token')
+        // This allows your Middleware to see the session
+        let sessionStore = "";
+        if (currentUserRole == "distributor") {
+          sessionStore = "distributorId";
+
+          Cookies.set(`${sessionStore}`, distributorId, {
+            expires: 1,
+            path: "/",
+          });
+        } else if (currentUserRole == "seller") {
+          sessionStore = "vendorId";
+          Cookies.set(`${sessionStore}`, sellerId, {
+            expires: 1,
+            path: "/",
+          });
+        } else if (currentUserRole == "superadmin") {
+          sessionStore = "superadminId";
+          Cookies.set(`${sessionStore}`, superadminId, {
+            expires: 1,
+            path: "/",
+          });
+        }
+        Cookies.set("session2", token, {
+          expires: 1,
+          path: "/",
+          sameSite: "lax",
+        });
+
+        const targetPortal = (portal || portalKey) as keyof typeof portalConfig;
+        const redirectPath =
+          portalConfig[targetPortal]?.redirect || "/dashboard";
+
+        // 3. Redirect
+        router.push(redirectPath);
+        router.refresh();
+      }
     } catch (error: any) {
-      // ... error handling
+      console.error("Login error:", error);
     } finally {
       setLoading(false);
     }
