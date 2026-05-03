@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Cookies from "js-cookie";
 import axiosInstance from "../../../../../../components/axios/axios";
+import { cn } from "@/lib/utils"; // Import your cn util
 
 // --- TYPES & INTERFACES ---
 interface AssignedBy {
@@ -56,9 +57,6 @@ export default function TransferLogs() {
           },
         );
 
-        console.log("API Responsesss:", response.data);
-
-        // ✅ FIXED: always extract array properly
         const incomingData = Array.isArray(response.data?.history)
           ? response.data.history
           : Array.isArray(response.data?.assignments)
@@ -102,17 +100,17 @@ export default function TransferLogs() {
     {
       label: "Total Assignments",
       value: assignments.length,
-      color: "text-slate-900",
+      color: "text-[#0f172a] dark:text-white",
     },
     {
       label: "Total Vouchers",
       value: totalVouchers,
-      color: "text-emerald-600",
+      color: "text-[#00adb5]",
     },
     {
       label: "Active Distributors",
       value: uniqueDistributors,
-      color: "text-slate-900",
+      color: "text-[#0f172a] dark:text-white",
     },
   ];
 
@@ -147,10 +145,17 @@ export default function TransferLogs() {
     });
 
   return (
-    <div className="min-h-screen p-8 font-sans text-slate-900">
+    <div className={cn("min-h-screen p-8 transition-colors", "")}>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Assignment Logs</h1>
+        <h1
+          className={cn(
+            "text-3xl font-bold tracking-tight text-[#0f172a]",
+            "dark:text-white",
+          )}
+        >
+          Assignment Logs
+        </h1>
         <p className="text-slate-500 mt-1">
           Monitor all voucher assignments to distributors
         </p>
@@ -161,18 +166,26 @@ export default function TransferLogs() {
         {stats.map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"
+            className={cn(
+              "bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-colors",
+              "dark:bg-slate-900 dark:border-slate-800",
+            )}
           >
-            <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-2">
               {stat.label}
             </p>
-            <p className={`text-4xl font-bold ${stat.color}`}>{stat.value}</p>
+            <p className={cn("text-4xl font-bold", stat.color)}>{stat.value}</p>
           </div>
         ))}
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+      <div
+        className={cn(
+          "bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center transition-colors",
+          "dark:bg-slate-900 dark:border-slate-800",
+        )}
+      >
         <div className="relative flex-1 w-full">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -183,28 +196,38 @@ export default function TransferLogs() {
             placeholder="Search by distributor, plan, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className={cn(
+              "w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#00adb5] transition-all",
+              "dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:focus:border-[#00adb5]",
+            )}
           />
         </div>
 
-        <div className="flex bg-slate-100 p-1 rounded-xl">
+        <div
+          className={cn(
+            "flex bg-slate-100 p-1 rounded-xl",
+            "dark:bg-slate-800",
+          )}
+        >
           <button
             onClick={() => setFilterType("all")}
-            className={`px-5 py-1.5 rounded-lg font-medium text-sm transition-all ${
+            className={cn(
+              "px-5 py-1.5 rounded-lg font-medium text-sm transition-all",
               filterType === "all"
-                ? "bg-emerald-500 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-200"
-            }`}
+                ? "bg-[#00adb5] text-white shadow-sm"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
+            )}
           >
             All
           </button>
           <button
             onClick={() => setFilterType("recent")}
-            className={`px-5 py-1.5 rounded-lg font-medium text-sm transition-all ${
+            className={cn(
+              "px-5 py-1.5 rounded-lg font-medium text-sm transition-all",
               filterType === "recent"
-                ? "bg-emerald-500 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-200"
-            }`}
+                ? "bg-[#00adb5] text-white shadow-sm"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
+            )}
           >
             Recent
           </button>
@@ -212,12 +235,32 @@ export default function TransferLogs() {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-slate-800">
+      <div
+        className={cn(
+          "bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-colors",
+          "dark:bg-slate-900 dark:border-slate-800",
+        )}
+      >
+        <div
+          className={cn(
+            "p-6 border-b border-slate-100 flex justify-between items-center",
+            "dark:border-slate-800",
+          )}
+        >
+          <h2
+            className={cn(
+              "text-xl font-bold text-slate-800",
+              "dark:text-white",
+            )}
+          >
             {filterType === "recent" ? "Recent Assignments" : "All Assignments"}
           </h2>
-          <span className="text-xs text-slate-400 font-medium bg-slate-50 px-2 py-1 rounded">
+          <span
+            className={cn(
+              "text-[10px] font-bold uppercase text-slate-400 bg-slate-50 px-2.5 py-1 rounded",
+              "dark:bg-slate-800 dark:text-slate-500",
+            )}
+          >
             {loading
               ? "Loading..."
               : `Showing ${filteredAssignments.length} results`}
@@ -227,7 +270,12 @@ export default function TransferLogs() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase tracking-wider font-bold">
+              <tr
+                className={cn(
+                  "bg-slate-50/50 text-slate-500 text-[11px] uppercase tracking-wider font-bold",
+                  "dark:bg-slate-800/30",
+                )}
+              >
                 <th className="px-8 py-4">Distributor</th>
                 <th className="px-8 py-4">Plan Name</th>
                 <th className="px-8 py-4">Quantity</th>
@@ -236,12 +284,20 @@ export default function TransferLogs() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100">
+            <tbody
+              className={cn(
+                "divide-y divide-slate-100",
+                "dark:divide-slate-800",
+              )}
+            >
               {loading ? (
                 <tr>
                   <td colSpan={5} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-400">
-                      <Loader2 className="animate-spin" size={32} />
+                      <Loader2
+                        className="animate-spin text-[#00adb5]"
+                        size={32}
+                      />
                       <p>Fetching inventory data...</p>
                     </div>
                   </td>
@@ -259,27 +315,50 @@ export default function TransferLogs() {
                 filteredAssignments.map((row) => (
                   <tr
                     key={row.transferId}
-                    className="hover:bg-slate-50/30 transition-colors"
+                    className={cn(
+                      "hover:bg-slate-50/30 transition-colors",
+                      "dark:hover:bg-slate-800/30",
+                    )}
                   >
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-[#e0f7f4] rounded-xl flex items-center justify-center text-[#00bfa5]">
+                        <div
+                          className={cn(
+                            "w-10 h-10 bg-cyan-50 rounded-xl flex items-center justify-center text-[#00adb5]",
+                            "dark:bg-cyan-950/30",
+                          )}
+                        >
                           <Building2 size={20} />
                         </div>
-                        <span className="font-semibold text-slate-700">
+                        <span
+                          className={cn(
+                            "font-semibold text-slate-700",
+                            "dark:text-slate-200",
+                          )}
+                        >
                           {row.distributorName}
                         </span>
                       </div>
                     </td>
 
                     <td className="px-8 py-5">
-                      <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      <div
+                        className={cn(
+                          "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-50 text-[#00adb5] border border-cyan-100",
+                          "dark:bg-cyan-950/30 dark:border-cyan-900/50",
+                        )}
+                      >
                         {row.planName}
                       </div>
                     </td>
 
                     <td className="px-8 py-5">
-                      <div className="flex items-center gap-2 text-slate-700 font-medium">
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 text-slate-700 font-medium",
+                          "dark:text-slate-300",
+                        )}
+                      >
                         <Package size={16} className="text-slate-400" />
                         {row.quantityAssigned}
                       </div>
@@ -291,10 +370,15 @@ export default function TransferLogs() {
 
                     <td className="px-8 py-5">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-slate-700">
+                        <span
+                          className={cn(
+                            "text-sm font-medium text-slate-700",
+                            "dark:text-slate-200",
+                          )}
+                        >
                           {row.assignedBy?.label || "N/A"}
                         </span>
-                        <span className="text-[10px] text-slate-400 uppercase tracking-tighter">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-tight">
                           ID: {row.assignedBy?.userId || "N/A"}
                         </span>
                       </div>
