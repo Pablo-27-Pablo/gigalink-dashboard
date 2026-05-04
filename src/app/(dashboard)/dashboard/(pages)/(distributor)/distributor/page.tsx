@@ -30,7 +30,7 @@ import axiosInstance from "@/components/axios/axios";
 import AddVendorModal from "@/components/dashboard/modal/AddVendorModal";
 import Cookies from "js-cookie";
 
-interface Seller {
+interface Vendor {
   sellerId: number;
   fullName: string;
   storeName: string;
@@ -56,7 +56,7 @@ export interface PlanBreakdown {
   totalDataGb: number;
 }
 
-interface Vendor {
+interface Seller {
   id: string;
   name: string;
   storeName: string;
@@ -148,71 +148,71 @@ const mockPlanSales: PlanSale[] = [
   },
 ];
 
-const initialVendors: Vendor[] = [
-  {
-    id: "1",
-    name: "Juan Dela Cruz",
-    storeName: "A&J",
-    email: "juan@vendor1.com",
-    phone: "+63 917 123 4567",
-    location: "Bongao, Tawi Tawi",
-    assignedVouchers: 1500,
-    activatedVouchers: 1350,
-    status: "Active",
-    joinedDate: "2025-01-15",
-  },
-  {
-    id: "4",
-    name: "Ana Garcia",
-    storeName: "Ana's",
-    email: "ana@vendor4.com",
-    phone: "+63 920 456 7890",
-    location: "Tandubas, Tawi Tawi",
-    assignedVouchers: 950,
-    activatedVouchers: 850,
-    status: "Active",
-    joinedDate: "2025-03-01",
-  },
-  {
-    id: "2",
-    name: "Maria Santos",
-    storeName: "Kyukyu",
-    email: "maria@vendor2.com",
-    phone: "+63 918 234 5678",
-    location: "Languyan, Tawi Tawi",
-    assignedVouchers: 1200,
-    activatedVouchers: 1050,
-    status: "Active",
-    joinedDate: "2025-02-10",
-  },
-  {
-    id: "3",
-    name: "Pedro Reyes",
-    storeName: "Pedro's",
-    email: "pedro@vendor3.com",
-    phone: "+63 919 345 6789",
-    location: "Sibutu, Tawi Tawi",
-    assignedVouchers: 800,
-    activatedVouchers: 600,
-    status: "Inactive",
-    joinedDate: "2024-12-20",
-  },
-  {
-    id: "4",
-    name: "Ana Garcia",
-    storeName: "Ana's",
-    email: "ana@vendor4.com",
-    phone: "+63 920 456 7890",
-    location: "Tandubas, Tawi Tawi",
-    assignedVouchers: 950,
-    activatedVouchers: 850,
-    status: "Active",
-    joinedDate: "2025-03-01",
-  },
-];
+// const initialVendors: Vendor[] = [
+//   {
+//     id: "1",
+//     name: "Juan Dela Cruz",
+//     storeName: "A&J",
+//     email: "juan@vendor1.com",
+//     phone: "+63 917 123 4567",
+//     location: "Bongao, Tawi Tawi",
+//     assignedVouchers: 1500,
+//     activatedVouchers: 1350,
+//     status: "Active",
+//     joinedDate: "2025-01-15",
+//   },
+//   {
+//     id: "4",
+//     name: "Ana Garcia",
+//     storeName: "Ana's",
+//     email: "ana@vendor4.com",
+//     phone: "+63 920 456 7890",
+//     location: "Tandubas, Tawi Tawi",
+//     assignedVouchers: 950,
+//     activatedVouchers: 850,
+//     status: "Active",
+//     joinedDate: "2025-03-01",
+//   },
+//   {
+//     id: "2",
+//     name: "Maria Santos",
+//     storeName: "Kyukyu",
+//     email: "maria@vendor2.com",
+//     phone: "+63 918 234 5678",
+//     location: "Languyan, Tawi Tawi",
+//     assignedVouchers: 1200,
+//     activatedVouchers: 1050,
+//     status: "Active",
+//     joinedDate: "2025-02-10",
+//   },
+//   {
+//     id: "3",
+//     name: "Pedro Reyes",
+//     storeName: "Pedro's",
+//     email: "pedro@vendor3.com",
+//     phone: "+63 919 345 6789",
+//     location: "Sibutu, Tawi Tawi",
+//     assignedVouchers: 800,
+//     activatedVouchers: 600,
+//     status: "Inactive",
+//     joinedDate: "2024-12-20",
+//   },
+//   {
+//     id: "4",
+//     name: "Ana Garcia",
+//     storeName: "Ana's",
+//     email: "ana@vendor4.com",
+//     phone: "+63 920 456 7890",
+//     location: "Tandubas, Tawi Tawi",
+//     assignedVouchers: 950,
+//     activatedVouchers: 850,
+//     status: "Active",
+//     joinedDate: "2025-03-01",
+//   },
+// ];
 
 export default function VendorManagement() {
-  const [vendors, setVendors] = useState<Vendor[]>(initialVendors);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -258,7 +258,7 @@ export default function VendorManagement() {
   //   setShowEditDialog(false);
   // };
 
-  const handleAddClick = (seller: Seller) => {
+  const handleAddClick = (seller: Vendor) => {
     const sessionToken = Cookies.get("session2");
     const sessionDistributorID = Cookies.get("distributorId");
 
@@ -283,20 +283,22 @@ export default function VendorManagement() {
 
         // ✅ SET FROM API (NOT seller)
         setSelectedVendor({
-          id: String(data.sellerId),
-          name: data.fullName,
-          storeName: data.storeName,
+          sellerId: sellers.length + 1,
+          fullName: data.fullName,
+          storeName: `${data.fullName?.split(" ")[0] || "Store"}'s Store`,
           email: data.email,
           phone: data.phone,
           location: data.location,
           assignedVouchers: data.assignedVouchers,
           activatedVouchers: data.activatedVouchers,
-          status: data.status,
-          joinedDate: data.joinedDate,
-          planBreakdown: data.planBreakdown || [], // 🔥 IMPORTANT
+          lastLoginAt: null,
+          status: "Active",
+          joinedDate: new Date().toISOString().split("T")[0],
+          planBreakdown: data.planBreakdown,
         });
 
-        setSelectedSeller(seller);
+        // setSelectedVendor(seller);
+        console.log("Selected Vendor for Edit:", seller);
       })
       .catch((err) => {
         console.error("❌ Fetch Error:", err);
@@ -324,26 +326,26 @@ export default function VendorManagement() {
         console.log("✅ API Response Data:", sessionToken); // Debug log to verify response structure
 
         if (Array.isArray(dataToSet)) {
-          setSellers(dataToSet);
+          setVendors(dataToSet);
         } else {
           console.error("❌ Unexpected API structure:", res.data);
-          setSellers([]);
+          setVendors([]);
         }
       })
       .catch((err) => {
         console.error("❌ Fetch Error:", err);
-        setSellers([]);
+        setVendors([]);
       });
   }, []);
 
   const filteredVendors = vendors.filter((v) => {
     const matchesSearch =
-      v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All" || v.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-  const filtered = sellers.filter((s) => {
+  const filtered = vendors.filter((s) => {
     const matchesSearch =
       s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -353,7 +355,7 @@ export default function VendorManagement() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleToggleStatus = (seller: Seller) => {
+  const handleToggleStatus = (seller: Vendor) => {
     const sessionToken = Cookies.get("session2");
     const sessionDistributorID = Cookies.get("distributorId");
 
@@ -377,7 +379,7 @@ export default function VendorManagement() {
         console.log("✅ Status Updated:", res.data);
 
         // 2. Update the UI state only after the API succeeds
-        setSellers((prev) =>
+        setVendors((prev) =>
           prev.map((s) =>
             s.sellerId === seller.sellerId
               ? {
@@ -414,7 +416,7 @@ export default function VendorManagement() {
   ) => {
     const total = Object.values(assignments).reduce((s, q) => s + q, 0);
 
-    const newSeller: Seller = {
+    const newSeller: Vendor = {
       sellerId: sellers.length + 1,
       fullName: data.name,
       storeName: `${data.name.split(" ")[0]}'s Store`,
@@ -429,18 +431,20 @@ export default function VendorManagement() {
       //planBreakdown: seller.planBreakdown, // Pass the plan breakdown data
     };
 
-    setSellers((prev) => [...prev, newSeller]);
+    // setSellers((prev) => [...prev, newSeller]);
+    setVendors((prev) => [...prev, newSeller]);
+
     setShowAddModal(false);
 
-    toast.success(`Seller ${data.name} added successfully`);
+    toast.success(`Vendor ${data.name} added successfully`);
   };
 
-  const handleEditSeller = (updated: Seller) => {
-    setSellers((prev) =>
-      prev.map((s) => (s.sellerId === updated.sellerId ? updated : s)),
-    );
-    setSelectedSeller(updated);
-  };
+  // const handleEditSeller = (updated: Seller) => {
+  //   setSellers((prev) =>
+  //     prev.map((s) => (s.sellerId === updated.sellerId ? updated : s)),
+  //   );
+  //   setSelectedSeller(updated);
+  // };
 
   const handleAddVendor = (
     data: { name: string; email: string; phone: string; location: string },
@@ -448,14 +452,15 @@ export default function VendorManagement() {
   ) => {
     const total = Object.values(assignments).reduce((s, q) => s + q, 0);
     const newVendor: Vendor = {
-      id: String(vendors.length + 1),
-      name: data.name,
+      sellerId: sellers.length + 1,
+      fullName: data.name,
       storeName: `${data.name.split(" ")[0]}'s Store`,
       email: data.email,
       phone: data.phone,
       location: data.location,
       assignedVouchers: total,
       activatedVouchers: 0,
+      lastLoginAt: null,
       status: "Active",
       joinedDate: new Date().toISOString().split("T")[0],
     };
@@ -481,12 +486,12 @@ export default function VendorManagement() {
     ));
   };
 
-  const handleEditVendor = (updatedVendor: Vendor) => {
-    setVendors((prev) =>
-      prev.map((v) => (v.id === updatedVendor.id ? updatedVendor : v)),
-    );
-    setSelectedVendor(updatedVendor);
-  };
+  // const handleEditVendor = (updatedVendor: Vendor) => {
+  //   setVendors((prev) =>
+  //     prev.map((v) => (v.id === updatedVendor.id ? updatedVendor : v)),
+  //   );
+  //   setSelectedVendor(updatedVendor);
+  // };
 
   return (
     <>
@@ -709,7 +714,7 @@ export default function VendorManagement() {
                         </div>
                         <div>
                           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                            {selectedVendor.name}
+                            {selectedVendor.fullName}
                           </h2>
                           <div className="flex items-center gap-2">
                             <span
@@ -757,8 +762,9 @@ export default function VendorManagement() {
                                 Store Name
                               </p>
                               <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
-                                {selectedVendor?.name?.split(" ")[0] ?? "N/A"}'s
-                                Store
+                                {selectedVendor?.fullName?.split(" ")[0] ??
+                                  "N/A"}
+                                's Store
                               </p>
                             </div>
                           </div>
@@ -884,34 +890,45 @@ export default function VendorManagement() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {selectedVendor?.planBreakdown?.map(
-                              (sale, index) => (
-                                <tr
-                                  key={index}
-                                  className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                                >
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                                    {sale.profileName}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-100 text-teal-700 font-semibold">
-                                      <Package size={14} />
+                            {selectedVendor?.planBreakdown?.length ? (
+                              selectedVendor?.planBreakdown?.map(
+                                (sale, index) => (
+                                  <tr
+                                    key={index}
+                                    className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                                  >
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
+                                      {sale.profileName}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-100 text-teal-700 font-semibold">
+                                        <Package size={14} />
+                                        {sale.qtyActivated}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
+                                      {sale.qtySold}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
                                       {sale.qtyActivated}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
-                                    {sale.qtySold}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
-                                    {sale.qtyActivated}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-teal-600 text-white font-bold text-sm">
-                                      {sale.totalGb} GB
-                                    </div>
-                                  </td>
-                                </tr>
-                              ),
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                      <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-teal-600 text-white font-bold text-sm">
+                                        {sale.totalGb} GB
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ),
+                              )
+                            ) : (
+                              <tr>
+                                <td
+                                  colSpan={5}
+                                  className="px-6 py-4 text-center text-sm text-slate-500 dark:text-slate-400"
+                                >
+                                  No sales data available.
+                                </td>
+                              </tr>
                             )}
                             {/* Total Row */}
                             <tr className="bg-slate-50 dark:bg-slate-700/50 font-semibold">
@@ -939,12 +956,12 @@ export default function VendorManagement() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
                                 <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-teal-600 text-white font-bold text-sm">
-                                  {mockPlanSales
-                                    .reduce(
+                                  {selectedVendor?.planBreakdown
+                                    ?.reduce(
                                       (sum, sale) => sum + sale.totalGb,
                                       0,
                                     )
-                                    .toLocaleString()}{" "}
+                                    ?.toLocaleString()}{" "}
                                   GB
                                 </div>
                               </td>
@@ -972,7 +989,7 @@ export default function VendorManagement() {
                       </button> */}
                       <button
                         onClick={() =>
-                          selectedSeller && handleToggleStatus(selectedSeller)
+                          selectedVendor && handleToggleStatus(selectedVendor)
                         }
                         className={cn(
                           "flex-1 px-5 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-lg",
@@ -1004,7 +1021,7 @@ export default function VendorManagement() {
 
         {/* Edit Vendor Dialog */}
         <EditVendorDialog
-          key={selectedVendor?.id}
+          key={selectedVendor?.sellerId}
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
           vendor={selectedVendor}

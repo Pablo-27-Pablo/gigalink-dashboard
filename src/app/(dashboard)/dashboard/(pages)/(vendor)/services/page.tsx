@@ -63,7 +63,7 @@ export default function Services() {
     setIsGenerating(true);
     try {
       const sessionToken = Cookies.get("session2");
-      const sessionSellerID = Cookies.get("sellerId") || "8";
+      const sessionSellerID = Cookies.get("vendorId");
 
       const response = await axiosInstance.post(
         `api/seller/${sessionSellerID}/services/generate`,

@@ -160,8 +160,9 @@ export default function AddVendorModal({
         // Use your instance name here (e.g., apiClient)
         // The base URL is handled by the instance configuration
         const sessionToken = Cookies.get("session2");
+        const sessionDistributorID = Cookies.get("distributorId");
         const response = await axiosInstance.post(
-          "api/distributor/2/sellers",
+          `api/distributor/${sessionDistributorID}/sellers`,
           payload, // Second argument: The data
           {
             // Third argument: The config object

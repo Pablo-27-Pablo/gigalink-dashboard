@@ -105,25 +105,25 @@ export default function VoucherRequest() {
     };
 
     // Fetch Plans
-    // axiosInstance
-    //   .get(`api/distributor/${sessionDistributorID}/plans`, {
-    //     headers: {
-    //       ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
-    //     },
-    //   })
-    //   .then((res) => {
-    //     // Logic to extract plans, defaulting to an empty array
-    //     const dataToSet = res.data && res.data.plans ? res.data.plans : [];
+    axiosInstance
+      .get(`api/distributor/${sessionDistributorID}/plans`, {
+        headers: {
+          ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
+        },
+      })
+      .then((res) => {
+        // Logic to extract plans, defaulting to an empty array
+        const dataToSet = res.data && res.data.plans ? res.data.plans : [];
 
-    //     console.log("✅ Plans Received:", dataToSet);
+        console.log("✅ Plans Received:", dataToSet);
 
-    //     if (Array.isArray(dataToSet)) {
-    //       setPlans(dataToSet);
-    //     }
-    //   })
-    //   .catch((err) => {
-    //     console.error("❌ Fetch Error:", err);
-    //   });
+        if (Array.isArray(dataToSet)) {
+          setPlans(dataToSet);
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Fetch Error:", err);
+      });
 
     fetchInventory();
     fetchSellers();

@@ -14,16 +14,17 @@ import Cookies from "js-cookie";
 import axiosInstance from "@/components/axios/axios";
 
 interface Vendor {
-  id: string;
-  name: string;
+  sellerId: number;
+  fullName: string;
   storeName: string;
   email: string;
   phone: string;
   location: string;
   assignedVouchers: number;
   activatedVouchers: number;
-  status: "Active" | "Inactive";
-  joinedDate: string;
+  lastLoginAt: string | null;
+  status: "Active" | "Inactive"; // added for UI compatibility
+  joinedDate: string; // added for UI compatibility
 }
 
 interface EditVendorDialogProps {
@@ -49,7 +50,7 @@ export function EditVendorDialog({
   useEffect(() => {
     if (vendor) {
       setFormData({
-        fullName: vendor.name,
+        fullName: vendor.fullName,
         storeName: vendor.storeName,
         email: vendor.email,
         phone: vendor.phone,
@@ -83,7 +84,7 @@ export function EditVendorDialog({
 
     try {
       const response = await axiosInstance.patch(
-        `api/distributor/2/sellers/${vendor.id}`,
+        `api/distributor/${Cookies.get("distributorId")}/sellers/${vendor.sellerId}`,
         payload,
         {
           headers: {
