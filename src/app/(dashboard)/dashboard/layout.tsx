@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 //import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import {
   LayoutDashboard,
   Wifi,
   ChevronLeft,
+  Laptop,
   Moon,
   Sun,
   History,
@@ -18,6 +20,7 @@ import {
 } from "lucide-react";
 import DashboardNavbar from "@/components/dashboard/navbar/DashboardNavbar";
 import Cookies from "js-cookie";
+import { toast } from "sonner";
 
 const navItems = [
   {
@@ -78,46 +81,34 @@ const navItems = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [dark, setDark] = useState(false);
   const router = useRouter();
   const [role, setRole] = useState(""); // for RBAC
+  const { theme, toggleTheme } = useTheme();
 
   // Filter items based on the current role state
   const filteredNavItems = navItems.filter((item) => item.roles.includes(role));
 
-  const toggleDark = () => {
-    setDark((d) => !d);
-    document.documentElement.classList.toggle("dark");
-  };
-
   const handleSignOut = () => {
-    // 1. Check if the cookie exists to avoid unnecessary operations
-    if (document.cookie.includes("session2")) {
-      // 2. Clear the cookie by setting an expired date
-      document.cookie =
-        "session2=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
-    }
+    const keys = ["session2", "distributorId", "vendorId", "superadminId"];
+    keys.forEach((key) => {
+      Cookies.remove(key, { path: "/" });
+      document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax`;
+    });
 
-    if (document.cookie.includes("distributorId")) {
-      // 2. Clear the cookie by setting an expired date
-      document.cookie =
-        "distributorId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
-    }
-    if (document.cookie.includes("vendorId")) {
-      // 2. Clear the cookie by setting an expired date
-      document.cookie =
-        "vendorId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
-    }
-
-    // 3. Force a refresh to clear Next.js client-side data
+    sessionStorage.setItem("signedOut", "true");
     router.refresh();
 
-    // 4. Send the user back to login
-    router.push("/login");
+    toast.success("Signed out successfully");
+    window.setTimeout(() => window.location.replace("/login"), 300);
   };
 
   useEffect(() => {
     const sessionToken = Cookies.get("session2");
+    if (!sessionToken) {
+      window.location.replace("/login");
+      return;
+    }
+
     if (sessionToken) {
       try {
         // 1. Split the token (Header.Payload.Signature)
@@ -144,6 +135,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (!Cookies.get("session2")) {
+        window.location.replace("/login");
+        return;
+      }
+
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 transition-colors">
       {/* Sidebar */}
@@ -159,6 +166,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <a
               key={label}
               href={href}
+              onClick={(event) => {
+                event.preventDefault();
+                // Use replace so dashboard navigation doesn't stack history entries
+                router.replace(href);
+              }}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:text-teal-700 dark:hover:text-teal-300 transition-colors",
                 collapsed && "justify-center",
@@ -172,14 +184,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         <div className="p-3 border-t border-slate-200 dark:border-slate-700 space-y-1">
           <button
-            onClick={toggleDark}
+            onClick={toggleTheme}
             className={cn(
               "flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors",
               collapsed && "justify-center",
             )}
           >
-            {dark ? <Sun size={16} /> : <Moon size={16} />}
-            {!collapsed && <span>{dark ? "Light Mode" : "Dark Mode"}</span>}
+            {theme === "system" ? (
+              <Laptop size={16} />
+            ) : theme === "dark" ? (
+              <Sun size={16} />
+            ) : (
+              <Moon size={16} />
+            )}
+            {!collapsed && (
+              <span>
+                {theme === "system"
+                  ? "System"
+                  : theme === "dark"
+                    ? "Light Mode"
+                    : "Dark Mode"}
+              </span>
+            )}
           </button>
 
           <button

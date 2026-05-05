@@ -11,6 +11,7 @@ import {
 import Cookies from "js-cookie";
 import axiosInstance from "../../../../../../components/axios/axios";
 import { cn } from "@/lib/utils"; // Import your cn util
+import { toast } from "sonner";
 
 // --- TYPES & INTERFACES ---
 interface AssignedBy {
@@ -66,6 +67,7 @@ export default function TransferLogs() {
         setAssignments(incomingData);
       } catch (error) {
         console.error("Failed to fetch inventory:", error);
+        toast.error("Failed to load transfer logs");
       } finally {
         setLoading(false);
       }

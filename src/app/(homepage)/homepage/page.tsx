@@ -72,7 +72,7 @@ export default function PortalSelection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
             whileHover={{ y: -6, scale: 1.02 }}
-            onClick={() => router.push(portal.href)}
+            onClick={() => router.replace(portal.href)}
             className={`cursor-pointer bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:ring-2 ${portal.ring} transition-all overflow-hidden`}
           >
             <div className={`h-1.5 w-full bg-gradient-to-r ${portal.color}`} />
@@ -108,7 +108,7 @@ export default function PortalSelection() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        onClick={() => router.push("/")}
+        onClick={() => router.replace("/")}
         className="mt-10 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
       >
         ← Back to Home

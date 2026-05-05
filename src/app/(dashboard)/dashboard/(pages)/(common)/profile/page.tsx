@@ -1,14 +1,90 @@
 "use client";
 
-import { User, Mail, Phone, Lock, Edit2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { User, Mail, Phone, Lock, Edit2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils"; // Assuming your cn util is here
+import { cn } from "@/lib/utils";
+import Cookies from "js-cookie";
+import axiosInstance from "../../../../../../components/axios/axios";
+import { toast } from "sonner";
+import { jwtDecode } from "jwt-decode";
+
+interface JWTPayload {
+  roleName?: string;
+  distributorId?: string | number;
+  vendorId?: string | number;
+  [key: string]: any;
+}
 
 export default function Profile() {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const sessionToken = Cookies.get("session2");
+
+      if (!sessionToken) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const decoded: JWTPayload = jwtDecode(sessionToken);
+        const role = decoded.roleName?.toLowerCase();
+
+        const distributorId =
+          decoded.distributorId || Cookies.get("distributorId");
+        const sellerId = decoded.vendorId || Cookies.get("vendorId");
+
+        let endpoint = "";
+
+        if (role === "superadmin" || role === "admin") {
+          endpoint = `api/superadmin/profile`;
+        } else if (role === "seller") {
+          endpoint = `api/seller/${sellerId}/profile`;
+        } else if (role === "distributor") {
+          endpoint = `api/distributor/${distributorId}/profile`;
+        } else {
+          setLoading(false);
+          return;
+        }
+
+        const res = await axiosInstance.get(endpoint, {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        });
+
+        setProfile(res.data);
+      } catch (err) {
+        console.error("❌ Profile Error:", err);
+        toast.error("Failed to load profile session");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-[#00adb5]" />
+      </div>
+    );
+  }
+
+  const displayName =
+    profile?.distributorName ||
+    profile?.sellerName ||
+    profile?.name ||
+    "User Profile";
+
   return (
-    <div className={cn("min-h-screen  transition-colors", "dark:bg-slate-950")}>
+    <div className={cn("min-h-screen transition-colors", "dark:bg-slate-950")}>
       <main className="max-w-4xl mx-auto pt-12 pb-20 px-4">
-        {/* Page Header */}
         <div className="text-center mb-10">
           <h1
             className={cn(
@@ -16,14 +92,10 @@ export default function Profile() {
               "dark:text-white",
             )}
           >
-            Profile Settings
+            {profile?.roleName?.toUpperCase() || "USER"} SETTINGS
           </h1>
-          <p className="text-slate-500 mt-2">
-            Manage your account information and preferences.
-          </p>
         </div>
 
-        {/* Profile Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -32,57 +104,31 @@ export default function Profile() {
             "dark:bg-slate-900 dark:border-slate-800",
           )}
         >
-          {/* Cyan Header Section */}
           <div className="h-44 bg-[#00adb5] relative flex justify-center">
             <div className="absolute -bottom-14">
-              <div
-                className={cn(
-                  "w-28 h-28 rounded-full border-4 border-white bg-[#f1f5f9] flex items-center justify-center text-slate-400",
-                  "dark:border-slate-900 dark:bg-slate-800 dark:text-slate-500",
-                )}
-              >
+              <div className="w-28 h-28 rounded-full border-4 border-white bg-[#f1f5f9] flex items-center justify-center text-slate-400 dark:border-slate-900 dark:bg-slate-800">
                 <User size={54} strokeWidth={1.5} />
               </div>
             </div>
           </div>
 
           <div className="pt-20 pb-12 px-10">
-            <h2
-              className={cn(
-                "text-2xl font-bold text-[#0f172a] text-center mb-12",
-                "dark:text-white",
-              )}
-            >
-              BARMM DISTRIBUTOR
+            <h2 className="text-2xl font-bold text-[#0f172a] text-center mb-12 dark:text-white">
+              {displayName}
             </h2>
 
             <div className="max-w-xl mx-auto space-y-8">
               {/* Email Row */}
-              <div
-                className={cn(
-                  "flex items-center gap-5 pb-6 border-b border-slate-100",
-                  "dark:border-slate-800",
-                )}
-              >
-                <div
-                  className={cn(
-                    "p-3 bg-[#f8fafc] rounded-xl text-slate-500 border border-slate-100",
-                    "dark:bg-slate-800/50 dark:border-slate-700",
-                  )}
-                >
+              <div className="flex items-center gap-5 pb-6 border-b border-slate-100 dark:border-slate-800">
+                <div className="p-3 bg-[#f8fafc] rounded-xl text-slate-500 dark:bg-slate-800/50">
                   <Mail size={22} />
                 </div>
                 <div className="flex-1">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Email Address
+                    Email
                   </label>
-                  <p
-                    className={cn(
-                      "text-slate-700 text-sm md:text-base",
-                      "dark:text-slate-200",
-                    )}
-                  >
-                    barmm.distributor@example.com
+                  <p className="text-slate-700 dark:text-slate-200">
+                    {profile?.email}
                   </p>
                 </div>
                 <button className="text-[#00adb5] hover:opacity-70 transition-opacity">
@@ -91,46 +137,28 @@ export default function Profile() {
               </div>
 
               {/* Phone Row */}
-              <div
-                className={cn(
-                  "flex items-center gap-5 pb-6 border-b border-slate-100",
-                  "dark:border-slate-800",
-                )}
-              >
-                <div
-                  className={cn(
-                    "p-3 bg-[#f8fafc] rounded-xl text-slate-500 border border-slate-100",
-                    "dark:bg-slate-800/50 dark:border-slate-700",
-                  )}
-                >
-                  <Phone size={22} />
+              {profile?.phone && (
+                <div className="flex items-center gap-5 pb-6 border-b border-slate-100 dark:border-slate-800">
+                  <div className="p-3 bg-[#f8fafc] rounded-xl text-slate-500 dark:bg-slate-800/50">
+                    <Phone size={22} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Phone
+                    </label>
+                    <p className="text-slate-700 dark:text-slate-200">
+                      {profile?.phone}
+                    </p>
+                  </div>
+                  <button className="text-[#00adb5] hover:opacity-70 transition-opacity">
+                    <Edit2 size={18} />
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Phone Number
-                  </label>
-                  <p
-                    className={cn(
-                      "text-slate-700 text-sm md:text-base",
-                      "dark:text-slate-200",
-                    )}
-                  >
-                    +1 (555) 123-4567
-                  </p>
-                </div>
-                <button className="text-[#00adb5] hover:opacity-70 transition-opacity">
-                  <Edit2 size={18} />
-                </button>
-              </div>
+              )}
 
               {/* Password Row */}
               <div className="flex items-center gap-5 pt-2">
-                <div
-                  className={cn(
-                    "p-3 bg-[#f8fafc] rounded-xl text-slate-500 border border-slate-100",
-                    "dark:bg-slate-800/50 dark:border-slate-700",
-                  )}
-                >
+                <div className="p-3 bg-[#f8fafc] rounded-xl text-slate-500 dark:bg-slate-800/50">
                   <Lock size={22} />
                 </div>
                 <div className="flex-1">
@@ -149,7 +177,12 @@ export default function Profile() {
                     ))}
                   </div>
                 </div>
-                <button className="text-[#00adb5] text-sm font-semibold hover:underline">
+                <button
+                  onClick={() =>
+                    toast.info("Password change feature coming soon!")
+                  }
+                  className="text-[#00adb5] text-sm font-semibold hover:underline"
+                >
                   Change
                 </button>
               </div>

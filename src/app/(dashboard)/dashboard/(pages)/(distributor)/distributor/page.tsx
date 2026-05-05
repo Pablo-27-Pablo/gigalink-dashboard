@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 //import { DistributorLayout } from "@/components/Distributor/DistributorLayout";
 //import { AddVendorModal } from "@/components/dashboard/modal/AddVendorModal";
-import { EditVendorDialog } from "@/components/Distributor/EditVendorDialog";
+import { EditVendorDialog } from "@/components/dashboard/modal/EditVendorDialog";
 import { toast } from "sonner";
 import axiosInstance from "@/components/axios/axios";
 import AddVendorModal from "@/components/dashboard/modal/AddVendorModal";
@@ -278,12 +278,13 @@ export default function VendorManagement() {
 
         if (!data) {
           console.error("❌ No seller data");
+          toast.error("Seller details were not found");
           return;
         }
 
         // ✅ SET FROM API (NOT seller)
         setSelectedVendor({
-          sellerId: sellers.length + 1,
+          sellerId: data.sellerId,
           fullName: data.fullName,
           storeName: `${data.fullName?.split(" ")[0] || "Store"}'s Store`,
           email: data.email,
@@ -292,7 +293,7 @@ export default function VendorManagement() {
           assignedVouchers: data.assignedVouchers,
           activatedVouchers: data.activatedVouchers,
           lastLoginAt: null,
-          status: "Active",
+          status: data.isActive ? "Active" : "Inactive",
           joinedDate: new Date().toISOString().split("T")[0],
           planBreakdown: data.planBreakdown,
         });
@@ -302,6 +303,7 @@ export default function VendorManagement() {
       })
       .catch((err) => {
         console.error("❌ Fetch Error:", err);
+        toast.error("Failed to load seller details");
       });
   };
 
@@ -335,6 +337,7 @@ export default function VendorManagement() {
       .catch((err) => {
         console.error("❌ Fetch Error:", err);
         setVendors([]);
+        toast.error("Failed to load vendors");
       });
   }, []);
 
@@ -389,10 +392,23 @@ export default function VendorManagement() {
               : s,
           ),
         );
+
+        // ✅ ALSO update selectedVendor
+        setSelectedVendor((prev) =>
+          prev && prev.sellerId === seller.sellerId
+            ? {
+                ...prev,
+                status: newStatusValue ? "Active" : "Inactive",
+              }
+            : prev,
+        );
+        toast.success(
+          `Vendor ${newStatusValue ? "activated" : "deactivated"} successfully`,
+        );
       })
       .catch((err) => {
         console.error("❌ Failed to update status:", err);
-        // Optional: Add a toast notification here to tell the user it failed
+        toast.error("Failed to update vendor status");
       });
 
     setSelectedVendor(null);
@@ -1015,7 +1031,7 @@ export default function VendorManagement() {
         <AddVendorModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-          plans={mockPlans}
+          // plans={mockPlans}
           onSubmit={handleAddVendor}
         />
 

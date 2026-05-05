@@ -8,7 +8,6 @@ import {
   EyeOff,
   Lock,
   Mail,
-  HelpCircle,
   Wifi,
   Briefcase,
   ShieldCheck,
@@ -16,9 +15,9 @@ import {
 
 import axiosInstance from "../../../components/axios/axios"; // Import the configured axios instance
 
-import axios from "axios";
 // import { setAuthCookie } from "@/app/actions/auth";
 import Cookies from "js-cookie";
+import { toast } from "sonner";
 
 const portalConfig = {
   agent: {
@@ -27,7 +26,7 @@ const portalConfig = {
     color: "from-teal-500 to-teal-600",
     ring: "focus:ring-teal-500",
     button: "bg-teal-500 hover:bg-teal-600 shadow-teal-500/30",
-    redirect: "/dashboard",
+    redirect: "/dashboard/vendor",
   },
   distributor: {
     label: "Distributor Portal",
@@ -35,7 +34,7 @@ const portalConfig = {
     color: "from-blue-500 to-blue-600",
     ring: "focus:ring-blue-500",
     button: "bg-blue-500 hover:bg-blue-600 shadow-blue-500/30",
-    redirect: "/dashboard",
+    redirect: "/dashboard/distributor",
   },
   superadmin: {
     label: "Super Admin Portal",
@@ -43,7 +42,15 @@ const portalConfig = {
     color: "from-violet-500 to-violet-600",
     ring: "focus:ring-violet-500",
     button: "bg-violet-500 hover:bg-violet-600 shadow-violet-500/30",
-    redirect: "/dashboard",
+    redirect: "/dashboard/admin",
+  },
+  seller: {
+    label: "Vendor Portal",
+    icon: Wifi,
+    color: "from-teal-500 to-teal-600",
+    ring: "focus:ring-teal-500",
+    button: "bg-teal-500 hover:bg-teal-600 shadow-teal-500/30",
+    redirect: "/dashboard/vendor",
   },
 };
 
@@ -64,6 +71,7 @@ function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const toastId = toast.loading("Signing you in...");
 
     try {
       const response = await axiosInstance.post("api/auth/login", {
@@ -111,17 +119,38 @@ function LoginForm() {
           path: "/",
           sameSite: "lax",
         });
+        sessionStorage.removeItem("signedOut");
 
         const targetPortal = (portal || portalKey) as keyof typeof portalConfig;
         const redirectPath =
           portalConfig[targetPortal]?.redirect || "/dashboard";
 
-        // 3. Redirect
-        router.push(redirectPath);
+        toast.success("Signed in successfully", { id: toastId });
+
+        // 3. Redirect without keeping the login page in browser history
+        router.replace(redirectPath);
         router.refresh();
+      } else {
+        toast.error("Login failed. No session token returned.", {
+          id: toastId,
+        });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
+      const message =
+        error &&
+        typeof error === "object" &&
+        "response" in error &&
+        typeof error.response === "object" &&
+        error.response &&
+        "data" in error.response &&
+        typeof error.response.data === "object" &&
+        error.response.data &&
+        "message" in error.response.data &&
+        typeof error.response.data.message === "string"
+          ? error.response.data.message
+          : "Login failed. Please check your email and password.";
+      toast.error(message, { id: toastId });
     } finally {
       setLoading(false);
     }

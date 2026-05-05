@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
 import Cookies from "js-cookie";
 import axiosInstance from "../../../../../../components/axios/axios";
+import { toast } from "sonner";
 
 interface Plan {
   profileName: string;
@@ -61,6 +62,7 @@ export default function Services() {
     if (!selectedPlan) return;
 
     setIsGenerating(true);
+    const toastId = toast.loading("Generating voucher...");
     try {
       const sessionToken = Cookies.get("session2");
       const sessionSellerID = Cookies.get("vendorId");
@@ -94,10 +96,12 @@ export default function Services() {
       setGeneratedVouchers([newVoucher]);
       setShowConfirmation(false);
       setShowVouchers(true);
+      toast.success("Voucher generated successfully", { id: toastId });
     } catch (error) {
       console.error("❌ Failed to generate voucher:", error);
-      alert(
+      toast.error(
         "Failed to generate voucher. Please check your connection or permissions.",
+        { id: toastId },
       );
     } finally {
       setIsGenerating(false);
@@ -107,7 +111,11 @@ export default function Services() {
   const handleCopyVoucher = (code: string) => {
     navigator.clipboard
       .writeText(code)
-      .catch((err) => console.error("Failed to copy:", err));
+      .then(() => toast.success("Voucher code copied"))
+      .catch((err) => {
+        console.error("Failed to copy:", err);
+        toast.error("Failed to copy voucher code");
+      });
   };
 
   const handlePrintVoucher = () => {
@@ -130,8 +138,11 @@ export default function Services() {
         link.download = `voucher-${code}.png`;
         link.href = pngFile;
         link.click();
+        toast.success("QR code downloaded");
       };
       img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    } else {
+      toast.error("QR code is not ready to download");
     }
   };
 
@@ -150,6 +161,7 @@ export default function Services() {
       })
       .catch((err) => {
         console.error("❌ Fetch Error:", err);
+        toast.error("Failed to load service data");
       })
       .finally(() => {
         setLoading(false);

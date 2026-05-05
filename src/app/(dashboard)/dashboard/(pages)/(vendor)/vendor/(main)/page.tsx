@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import axiosInstance from "../../.../../../../../../../components/axios/axios";
+import { toast } from "sonner";
 
 // --- New Interfaces ---
 interface Voucher {
@@ -59,6 +60,7 @@ export default function Dashboard() {
         setTotalVouchers(res.data.totals.assignedVouchers);
         setStockAvailable(res.data.totals.remainingVouchers);
         setActivatedCount(res.data.totals.activatedVouchers);
+        console.log("✅ Totals:", res.data.totals);
 
         // Update flat Vouchers list
         // res.data.vouchers should match the new array structure
@@ -67,11 +69,16 @@ export default function Dashboard() {
       })
       .catch((err) => {
         console.error("❌ Dashboard Fetch Error:", err);
+        toast.error("Failed to load dashboard data");
       });
   };
-  const fetchActivatedActive = () => {
+  const fetchActivatedActive = (showToast = false) => {
     const sessionToken = Cookies.get("session2");
     const sessionSellerId = Cookies.get("vendorId");
+
+    if (showToast) {
+      setIsRefreshing(true);
+    }
 
     axiosInstance
       .post(
@@ -86,9 +93,20 @@ export default function Dashboard() {
       .then((res) => {
         setVouchers(res.data.vouchers);
         console.log("✅ Activated Vouchers:", res.data.vouchers);
+        if (showToast) {
+          toast.success("Voucher sessions refreshed");
+        }
       })
       .catch((err) => {
         console.error("❌ Activated Active Fetch Error:", err);
+        if (showToast) {
+          toast.error("Failed to refresh voucher sessions");
+        }
+      })
+      .finally(() => {
+        if (showToast) {
+          setIsRefreshing(false);
+        }
       });
   };
 
@@ -191,7 +209,7 @@ export default function Dashboard() {
             </span>
           </h2>
           <button
-            onClick={() => fetchActivatedActive()}
+            onClick={() => fetchActivatedActive(true)}
             disabled={isRefreshing}
             className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-500/10 rounded-lg transition-all border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-50"
             title="Refresh Sessions"

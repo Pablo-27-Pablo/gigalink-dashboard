@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 //import { AddVendorModal } from "@/components/dashboard/modal/AddVendorModal";
-import { EditVendorDialog } from "@/components/Distributor/EditVendorDialog";
+import { EditVendorDialog } from "@/components/dashboard/modal/EditVendorDialog";
 import { toast } from "sonner";
 
 /* =========================

@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { Plus, Package, Send, CheckCircle, Clock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { DistributorLayout } from "@/components/Distributor/DistributorLayout";
 import Cookies from "js-cookie";
 import axiosInstance from "../../../../../../components/axios/axios";
 

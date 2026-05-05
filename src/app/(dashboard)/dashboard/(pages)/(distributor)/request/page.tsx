@@ -3,9 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Plus, Package, Send, CheckCircle, Clock, XCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { DistributorLayout } from "@/components/Distributor/DistributorLayout";
 import Cookies from "js-cookie";
 import axiosInstance from "../../../../../../components/axios/axios";
 
@@ -79,7 +77,7 @@ export default function VoucherRequest() {
       })
       .then((res) => {
         const dataToSet = res.data && res.data.plans ? res.data.plans : [];
-        console.log("✅ Inventory Summary Received:", dataToSet);
+        console.log("✅ Inventory Summary Received plans:", dataToSet);
         if (Array.isArray(dataToSet)) {
           setPlans(dataToSet);
         }
@@ -105,25 +103,25 @@ export default function VoucherRequest() {
     };
 
     // Fetch Plans
-    axiosInstance
-      .get(`api/distributor/${sessionDistributorID}/plans`, {
-        headers: {
-          ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
-        },
-      })
-      .then((res) => {
-        // Logic to extract plans, defaulting to an empty array
-        const dataToSet = res.data && res.data.plans ? res.data.plans : [];
+    // axiosInstance
+    //   .get(`api/distributor/${sessionDistributorID}/plans`, {
+    //     headers: {
+    //       ...(sessionToken && { Authorization: `Bearer ${sessionToken}` }),
+    //     },
+    //   })
+    //   .then((res) => {
+    //     // Logic to extract plans, defaulting to an empty array
+    //     const dataToSet = res.data && res.data.plans ? res.data.plans : [];
 
-        console.log("✅ Plans Received:", dataToSet);
+    //     console.log("✅ Plans Received:", dataToSet);
 
-        if (Array.isArray(dataToSet)) {
-          setPlans(dataToSet);
-        }
-      })
-      .catch((err) => {
-        console.error("❌ Fetch Error:", err);
-      });
+    //     if (Array.isArray(dataToSet)) {
+    //       setPlans(dataToSet);
+    //     }
+    //   })
+    //   .catch((err) => {
+    //     console.error("❌ Fetch Error:", err);
+    //   });
 
     fetchInventory();
     fetchSellers();
