@@ -83,7 +83,7 @@ export default function Profile() {
     "User Profile";
 
   return (
-    <div className={cn("min-h-screen transition-colors", "dark:bg-slate-950")}>
+    <div className={cn("min-h-screen transition-colors", "")}>
       <main className="max-w-4xl mx-auto pt-12 pb-20 px-4">
         <div className="text-center mb-10">
           <h1

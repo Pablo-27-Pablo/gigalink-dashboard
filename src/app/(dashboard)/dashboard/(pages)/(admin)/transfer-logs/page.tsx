@@ -100,11 +100,6 @@ export default function TransferLogs() {
   // --- STATS ---
   const stats: StatItem[] = [
     {
-      label: "Total Assignments",
-      value: assignments.length,
-      color: "text-[#0f172a] dark:text-white",
-    },
-    {
       label: "Total Vouchers",
       value: totalVouchers,
       color: "text-[#00adb5]",
@@ -164,7 +159,7 @@ export default function TransferLogs() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {stats.map((stat, i) => (
           <div
             key={i}

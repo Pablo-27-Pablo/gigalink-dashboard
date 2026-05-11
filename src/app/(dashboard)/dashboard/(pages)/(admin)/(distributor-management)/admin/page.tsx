@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import axiosInstance from "../../../../../../../components/axios/axios";
 import Cookies from "js-cookie";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Plus,
   Edit2,
@@ -69,6 +70,10 @@ export default function DistributorDashboard() {
   ];
 
   useEffect(() => {
+    fetchDistributors();
+  }, []);
+
+  const fetchDistributors = () => {
     const sessionToken = Cookies.get("session2");
     axiosInstance
       .get("api/superadmin/distributors/", {
@@ -83,7 +88,7 @@ export default function DistributorDashboard() {
         setDistributors(dataToSet || []);
       })
       .catch(() => setDistributors([]));
-  }, []);
+  };
 
   return (
     <div className="min-h-screen p-8 transition-colors">
@@ -208,14 +213,14 @@ export default function DistributorDashboard() {
         <DistributorFormModal
           onClose={closeModals}
           distributor={selectedDistributor}
+          fetchDistributors={fetchDistributors}
         />
       )}
       {isDeleteModalOpen && (
         <DeleteConfirmationModal
           onClose={closeModals}
-          distributorName={
-            selectedDistributor?.distributorName || "this distributor"
-          }
+          distributor={selectedDistributor}
+          fetchDistributors={fetchDistributors}
         />
       )}
     </div>
@@ -225,15 +230,28 @@ export default function DistributorDashboard() {
 function DistributorFormModal({
   onClose,
   distributor,
+  fetchDistributors,
 }: {
   onClose: () => void;
   distributor: any;
+  fetchDistributors: () => void;
 }) {
   const isEdit = !!distributor;
+
+  // ✅ ADDED
+  const [basicForm, setBasicForm] = useState({
+    distributorName: distributor?.distributorName || "",
+    email: distributor?.email || "",
+    phone: distributor?.phone || "",
+    regionId: distributor?.regionId || "",
+    regionName: distributor?.regionName || "",
+  });
+
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
   });
+
   const [errors, setErrors] = useState({ password: "", confirmPassword: "" });
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -242,37 +260,107 @@ function DistributorFormModal({
   useEffect(() => {
     let newErrors = { password: "", confirmPassword: "" };
 
-    // Logic: Only validate if they start typing, OR if it's a mandatory field (Add mode)
     const passwordEntered = formData.password.length > 0;
     const confirmEntered = formData.confirmPassword.length > 0;
 
-    // Password Length Check
     if (passwordEntered && formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters long";
     } else if (!isEdit && !passwordEntered) {
       newErrors.password = "Password is required for new accounts";
     }
 
-    // Match Check (only if they typed in confirm)
     if (
       passwordEntered &&
       confirmEntered &&
       formData.password !== formData.confirmPassword
     ) {
       newErrors.confirmPassword = "Passwords do not match";
-    } else if (!isEdit && passwordEntered && !confirmEntered) {
-      // Optional: show hint that confirm is missing in add mode
     }
 
     setErrors(newErrors);
   }, [formData, isEdit]);
 
-  const handleSubmit = () => {
+  // ✅ ADDED
+  // ✅ REPLACE YOUR CURRENT handleSubmit WITH THIS
+
+  const handleSubmit = async () => {
     const hasErrors = errors.password !== "" || errors.confirmPassword !== "";
-    if (!hasErrors) {
-      console.log("Submitting Data...", formData);
+
+    if (hasErrors) return;
+
+    const sessionToken = Cookies.get("session2");
+
+    try {
+      // =========================
+      // UPDATE DISTRIBUTOR
+      // =========================
+      if (isEdit) {
+        const updatePayload = {
+          distributorName: basicForm.distributorName,
+          email: basicForm.email,
+          phone: basicForm.phone,
+          regionId: Number(basicForm.regionId),
+          regionName: basicForm.regionName,
+        };
+
+        const response = await axiosInstance.patch(
+          `api/superadmin/distributors/${distributor.distributorId}`,
+          updatePayload,
+          {
+            headers: {
+              ...(sessionToken && {
+                Authorization: `Bearer ${sessionToken}`,
+              }),
+            },
+          },
+        );
+
+        console.log("Distributor Updated:", response.data);
+
+        toast.success("Distributor updated successfully!");
+
+        onClose();
+
+        fetchDistributors();
+
+        return;
+      }
+
+      // =========================
+      // ADD DISTRIBUTOR
+      // =========================
+      const addPayload = {
+        distributorName: basicForm.distributorName,
+        email: basicForm.email,
+        password: formData.password,
+        phone: basicForm.phone,
+        regionId: Number(basicForm.regionId),
+        regionName: basicForm.regionName,
+      };
+
+      const response = await axiosInstance.post(
+        "api/superadmin/distributors",
+        addPayload,
+        {
+          headers: {
+            ...(sessionToken && {
+              Authorization: `Bearer ${sessionToken}`,
+            }),
+          },
+        },
+      );
+
+      console.log("Distributor Added:", response.data);
+
+      toast.success("Distributor added successfully!");
+
       onClose();
+    } catch (error: any) {
+      console.error("Request Failed:", error.response?.data || error.message);
+
+      toast.error(error.response?.data?.message || "Operation failed");
     }
+    fetchDistributors();
   };
 
   const isSubmitDisabled =
@@ -308,39 +396,75 @@ function DistributorFormModal({
 
         {/* Form Body */}
         <div className="p-6 space-y-4 flex-1 overflow-y-auto max-h-[60vh]">
+          {/* ✅ UPDATED */}
           <FormField
             label="Company Name"
             icon={<Building2 size={18} />}
-            defaultValue={distributor?.distributorName}
             placeholder="e.g. Acme Corp"
+            value={basicForm.distributorName}
+            onChange={(e) =>
+              setBasicForm({
+                ...basicForm,
+                distributorName: e.target.value,
+              })
+            }
           />
+
+          {/* ✅ UPDATED */}
           <FormField
             label="Email Address"
             icon={<Mail size={18} />}
-            defaultValue={distributor?.email}
             placeholder="contact@email.com"
+            value={basicForm.email}
+            onChange={(e) =>
+              setBasicForm({
+                ...basicForm,
+                email: e.target.value,
+              })
+            }
           />
 
+          {/* ✅ UPDATED */}
           <FormField
             label="Phone Number"
             icon={<Phone size={18} />}
-            defaultValue={distributor?.phone}
             placeholder="09171234567"
-          />
-          <FormField
-            label="Region"
-            icon={<Globe size={18} />}
-            defaultValue={distributor?.regionName}
-            placeholder="Select Region"
+            value={basicForm.phone}
+            onChange={(e) =>
+              setBasicForm({
+                ...basicForm,
+                phone: e.target.value,
+              })
+            }
           />
 
-          {!isEdit && (
-            <FormField
-              label="Vouchers (Qty)"
-              icon={<Database size={18} />}
-              placeholder="e.g., 500"
-            />
-          )}
+          {/* ✅ UPDATED */}
+          <FormField
+            label="Region ID"
+            icon={<Database size={18} />}
+            placeholder="1"
+            value={basicForm.regionId}
+            onChange={(e) =>
+              setBasicForm({
+                ...basicForm,
+                regionId: e.target.value,
+              })
+            }
+          />
+
+          {/* ✅ UPDATED */}
+          <FormField
+            label="Region Name"
+            icon={<Globe size={18} />}
+            placeholder="Region 4"
+            value={basicForm.regionName}
+            onChange={(e) =>
+              setBasicForm({
+                ...basicForm,
+                regionName: e.target.value,
+              })
+            }
+          />
 
           {/* Informative Upper Note (Edit Mode Only) */}
           {isEdit && (
@@ -386,6 +510,7 @@ function DistributorFormModal({
                 </button>
               }
             />
+
             <FormField
               label="Confirm Password"
               type={showConfirm ? "text" : "password"}
@@ -394,7 +519,10 @@ function DistributorFormModal({
               error={errors.confirmPassword}
               value={formData.confirmPassword}
               onChange={(e) =>
-                setFormData({ ...formData, confirmPassword: e.target.value })
+                setFormData({
+                  ...formData,
+                  confirmPassword: e.target.value,
+                })
               }
               rightElement={
                 <button
@@ -417,6 +545,7 @@ function DistributorFormModal({
           >
             Cancel
           </button>
+
           <button
             onClick={handleSubmit}
             disabled={isSubmitDisabled}
@@ -437,29 +566,92 @@ function DistributorFormModal({
 
 function DeleteConfirmationModal({
   onClose,
-  distributorName,
+  distributor,
+  fetchDistributors,
 }: {
   onClose: () => void;
-  distributorName: string;
+  distributor: any;
+  fetchDistributors: () => void;
 }) {
+  const isCurrentlyActive = distributor?.status === "Active";
+
+  const handleToggleStatus = async () => {
+    const sessionToken = Cookies.get("session2");
+
+    try {
+      await axiosInstance.patch(
+        `api/superadmin/distributors/${distributor.distributorId}/status`,
+        {
+          isActive: !isCurrentlyActive,
+        },
+        {
+          headers: {
+            ...(sessionToken && {
+              Authorization: `Bearer ${sessionToken}`,
+            }),
+          },
+        },
+      );
+
+      toast.success(
+        `Distributor ${
+          isCurrentlyActive ? "deactivated" : "activated"
+        } successfully!`,
+      );
+
+      fetchDistributors();
+
+      onClose();
+    } catch (error: any) {
+      console.error(
+        "Status Update Failed:",
+        error.response?.data || error.message,
+      );
+
+      alert(error.response?.data?.message || "Failed to update status");
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
         <div className="p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-red-500/20">
+            <div
+              className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg",
+                isCurrentlyActive
+                  ? "bg-red-500 shadow-red-500/20"
+                  : "bg-emerald-500 shadow-emerald-500/20",
+              )}
+            >
               <AlertCircle size={24} />
             </div>
+
             <h2 className="text-xl font-bold dark:text-white">
-              Delete Distributor
+              {isCurrentlyActive
+                ? "Deactivate Distributor"
+                : "Activate Distributor"}
             </h2>
           </div>
+
           <p className="text-slate-500 text-sm">
-            Are you sure you want to delete{" "}
-            <span className="text-red-600 font-bold">{distributorName}</span>?
-            This action cannot be undone.
+            Are you sure you want to{" "}
+            <span
+              className={cn(
+                "font-bold",
+                isCurrentlyActive ? "text-red-600" : "text-emerald-600",
+              )}
+            >
+              {isCurrentlyActive ? "deactivate" : "activate"}
+            </span>{" "}
+            <span className="font-bold text-slate-700 dark:text-slate-200">
+              {distributor?.distributorName}
+            </span>
+            ?
           </p>
         </div>
+
         <div className="p-6 bg-slate-50 dark:bg-slate-800/50 flex gap-3 border-t">
           <button
             onClick={onClose}
@@ -467,8 +659,17 @@ function DeleteConfirmationModal({
           >
             Cancel
           </button>
-          <button className="flex-1 px-4 py-2 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 shadow-md">
-            Delete
+
+          <button
+            onClick={handleToggleStatus}
+            className={cn(
+              "flex-1 px-4 py-2 text-white font-semibold rounded-xl shadow-md transition-all",
+              isCurrentlyActive
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-emerald-600 hover:bg-emerald-700",
+            )}
+          >
+            {isCurrentlyActive ? "Deactivate" : "Activate"}
           </button>
         </div>
       </div>
